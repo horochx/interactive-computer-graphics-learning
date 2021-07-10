@@ -13,13 +13,15 @@ pub fn init_gl(canvas: &HtmlCanvasElement) -> WebGlRenderingContext {
 
     gl.viewport(0, 0, width, height);
 
+    gl.enable(WebGlRenderingContext::DEPTH_TEST);
+
     gl.clear_color(0.0, 0.0, 0.0, 0.0);
 
     gl
 }
 
 pub fn clear_canvas(gl: &WebGlRenderingContext) {
-    gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+    gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT | WebGlRenderingContext::DEPTH_BUFFER_BIT);
 }
 
 fn resize_canvas_to_display_size(canvas: &HtmlCanvasElement, multiplier: i32) -> (i32, i32) {
@@ -77,7 +79,27 @@ fn create_shader(gl: &WebGlRenderingContext, shader_type: u32, source: &str) -> 
     }
 }
 
-pub fn auto_create_and_bind_buffer(
+pub fn buffer_data_to_attr(
+    gl: &WebGlRenderingContext,
+    programe: &WebGlProgram,
+    target: u32,
+    data: &Vec<f32>,
+    usage: u32,
+    attr: &str,
+    size: i32,
+    type_: u32,
+    normalized: bool,
+    stride: i32,
+    offset: i32,
+) {
+    auto_create_and_bind_buffer(gl, target, None);
+
+    enable_vertex_attr(gl, programe, attr, size, type_, normalized, stride, offset);
+
+    gl.buffer_data_with_array_buffer_view(target, &to_f32_array(data), usage);
+}
+
+fn auto_create_and_bind_buffer(
     gl: &WebGlRenderingContext,
     buffer_type: u32,
     buffer: Option<WebGlBuffer>,
@@ -93,7 +115,7 @@ pub fn auto_create_and_bind_buffer(
     buffer
 }
 
-pub fn enable_vertex_attr(
+fn enable_vertex_attr(
     gl: &WebGlRenderingContext,
     programe: &WebGlProgram,
     attr: &str,
@@ -110,6 +132,6 @@ pub fn enable_vertex_attr(
     gl.enable_vertex_attrib_array(attr_index);
 }
 
-pub fn to_f32_array(vertices: &Vec<f32>) -> js_sys::Float32Array {
+fn to_f32_array(vertices: &Vec<f32>) -> js_sys::Float32Array {
     js_sys::Float32Array::from(vertices.as_slice())
 }
