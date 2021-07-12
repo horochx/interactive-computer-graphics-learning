@@ -53,8 +53,6 @@ pub fn init_program(
         .as_bool()
         .unwrap_or(false)
     {
-        gl.use_program(Some(&program));
-
         program
     } else {
         panic!("{}", gl.get_program_info_log(&program).unwrap());
@@ -79,38 +77,22 @@ fn create_shader(gl: &WebGlRenderingContext, shader_type: u32, source: &str) -> 
     }
 }
 
-pub fn buffer_data_to_attr(
+pub fn create_buffer_to_attr(
     gl: &WebGlRenderingContext,
-    programe: &WebGlProgram,
-    target: u32,
-    data: &Vec<f32>,
-    usage: u32,
+    program: &WebGlProgram,
+    buffer_target: u32,
     attr: &str,
     size: i32,
     type_: u32,
     normalized: bool,
     stride: i32,
     offset: i32,
-) {
-    auto_create_and_bind_buffer(gl, target, None);
-
-    enable_vertex_attr(gl, programe, attr, size, type_, normalized, stride, offset);
-
-    gl.buffer_data_with_array_buffer_view(target, &to_f32_array(data), usage);
-}
-
-fn auto_create_and_bind_buffer(
-    gl: &WebGlRenderingContext,
-    buffer_type: u32,
-    buffer: Option<WebGlBuffer>,
 ) -> WebGlBuffer {
-    let buffer = if let Some(value) = buffer {
-        value
-    } else {
-        gl.create_buffer().unwrap()
-    };
+    let buffer = gl.create_buffer().unwrap();
 
-    gl.bind_buffer(buffer_type, Some(&buffer));
+    gl.bind_buffer(buffer_target, Some(&buffer));
+
+    enable_vertex_attr(gl, program, attr, size, type_, normalized, stride, offset);
 
     buffer
 }
@@ -132,6 +114,18 @@ fn enable_vertex_attr(
     gl.enable_vertex_attrib_array(attr_index);
 }
 
-fn to_f32_array(vertices: &Vec<f32>) -> js_sys::Float32Array {
+pub fn send_buffer_data(
+    gl: &WebGlRenderingContext,
+    buffer: &WebGlBuffer,
+    buffer_target: u32,
+    data: &::js_sys::Object,
+    usage: u32,
+) {
+    gl.bind_buffer(buffer_target, Some(buffer));
+
+    gl.buffer_data_with_array_buffer_view(buffer_target, data, usage);
+}
+
+pub fn to_f32_array(vertices: &Vec<f32>) -> js_sys::Float32Array {
     js_sys::Float32Array::from(vertices.as_slice())
 }

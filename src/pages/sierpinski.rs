@@ -1,14 +1,17 @@
 use crate::utils::{
     vector::{Triangle, Vertice, Vertices},
-    webgl_utils::{buffer_data_to_attr, clear_canvas, init_gl, init_program},
+    webgl_utils::{
+        clear_canvas, create_buffer_to_attr, init_gl, init_program, send_buffer_data, to_f32_array,
+    },
 };
-use web_sys::{HtmlCanvasElement, WebGlProgram, WebGlRenderingContext};
+use web_sys::{HtmlCanvasElement, WebGlBuffer, WebGlProgram, WebGlRenderingContext};
 use yew::prelude::*;
 
 pub struct Sierpinski {
     canvas_ref: NodeRef,
     gl: Option<WebGlRenderingContext>,
     programe: Option<WebGlProgram>,
+    v_position: Option<WebGlBuffer>,
     draw_count: i32,
 }
 
@@ -30,7 +33,20 @@ impl Sierpinski {
             include_str!("./sierpinski.frag"),
         );
 
+        let v_position = create_buffer_to_attr(
+            gl,
+            &programe,
+            WebGlRenderingContext::ARRAY_BUFFER,
+            "v_position",
+            3,
+            WebGlRenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
         self.programe = Some(programe);
+        self.v_position = Some(v_position);
     }
 
     #[allow(unused_unsafe)]
@@ -96,20 +112,14 @@ impl Sierpinski {
         );
 
         let gl = self.gl.as_ref().unwrap();
-        let programe = self.programe.as_ref().unwrap();
+        let v_position = self.v_position.as_ref().unwrap();
 
-        buffer_data_to_attr(
+        send_buffer_data(
             gl,
-            programe,
+            v_position,
             WebGlRenderingContext::ARRAY_BUFFER,
-            &vertices.0,
+            &to_f32_array(&vertices.0),
             WebGlRenderingContext::STATIC_DRAW,
-            "v_position",
-            3,
-            WebGlRenderingContext::FLOAT,
-            false,
-            0,
-            0,
         );
 
         self.draw_count = vertices.0.len() as i32;
@@ -117,7 +127,9 @@ impl Sierpinski {
 
     fn draw(&self) {
         let gl = self.gl.as_ref().unwrap();
+        let programe = self.programe.as_ref().unwrap();
 
+        gl.use_program(Some(programe));
         clear_canvas(gl);
         gl.draw_arrays(WebGlRenderingContext::TRIANGLES, 0, self.draw_count);
     }
@@ -134,6 +146,7 @@ impl Component for Sierpinski {
             canvas_ref: NodeRef::default(),
             gl: None,
             programe: None,
+            v_position: None,
             draw_count: 0,
         }
     }
